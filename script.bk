@@ -1,0 +1,41 @@
+#!/bin/bash
+
+todaysdate=`date +%Y-%m-%d`
+# Database Credentials
+database=nodebb
+dbusername=nodebb
+dbpassword=password
+
+# make backup folder
+cd /opt/nodebb-backups
+mkdir $todaysdate
+
+## stop server
+cd /var/www/nodebb
+./nodebb stop
+sleep 2
+
+## files
+cd /var/www/
+tar -zcvf /home/moderator/nodebb-backups/$todaysdate/nodebb-files.tar.gz nodebb
+
+## database
+cd /opt/nodebb-backups/$todaysdate
+mkdir mongodb
+mongodump -h localhost:27017 -d $database -u $dbusername -p $dbpassword -o mongodb
+tar -zcvf nodebb-db.tar.gz mongodb
+rm -R mongodb
+
+## start nodebb
+cd /var/www/nodebb/
+./nodebb start
+
+## move to external backup storage
+#cd /opt/nodebb-backups
+#cp $todaysdate /nfsbackup/nodebb
+
+## delete oldest folder
+#cd /nfsbackup/nodebb
+#IFS= read -r -d $'\0' line < <(find . -maxdepth 1 -type d -printf '%T@ %p\0' 2>/dev/null | sort -z -n)
+#file="${line#* }"
+#rm -R $file
